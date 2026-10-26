@@ -51,7 +51,7 @@
       border-radius: 6px;
       padding: 28px;
       width: 100%;
-      max-width: 450px;
+      max-width: 520px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
       text-align: center;
       position: relative;
@@ -129,7 +129,6 @@
       margin-bottom: 10px;
     }
 
-    /* Estilo do botão quando o site está ATIVO (ação será DESATIVAR) */
     .btn-control.active-state {
       border: 1px solid var(--inactive-color);
       color: var(--inactive-color);
@@ -141,7 +140,6 @@
       box-shadow: 0 0 15px var(--inactive-glow);
     }
 
-    /* Estilo do botão quando o site está INATIVO (ação será ATIVAR) */
     .btn-control.inactive-state {
       border: 1px solid var(--active-color);
       color: var(--active-color);
@@ -165,11 +163,57 @@
       cursor: pointer;
       transition: all 0.2s;
       text-transform: uppercase;
+      margin-bottom: 20px;
     }
 
     .btn-sync:hover {
       border-color: #6b7280;
       color: #fff;
+    }
+
+    /* Caixa de Código Snippet */
+    .code-box {
+      background-color: #000000;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 12px;
+      text-align: left;
+      position: relative;
+    }
+
+    .code-box-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.7rem;
+      color: #6b7280;
+      text-transform: uppercase;
+    }
+
+    .btn-copy {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--active-color);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.2s;
+    }
+
+    .btn-copy:hover {
+      background-color: var(--active-color);
+      color: #000;
+    }
+
+    pre {
+      font-size: 0.72rem;
+      color: #00FF41;
+      white-space: pre-wrap;
+      word-break: break-all;
+      line-height: 1.4;
     }
 
     .console-hint {
@@ -195,16 +239,41 @@
       [ CARREGANDO... ]
     </button>
 
-    <!-- Botão para sincronizar com /validar -->
+    <!-- Botão para sincronizar -->
     <button class="btn-sync" onclick="buscarStatusServidor()">[ SINCRONIZAR ESTADO ]</button>
+
+    <!-- Caixa para copiar o script de validação para as páginas -->
+    <div class="code-box">
+      <div class="code-box-header">
+        <span>SCRIPT DE VALIDAÇÃO (INCLUA NAS PÁGINAS)</span>
+        <button class="btn-copy" onclick="copiarCodigo()">[ COPIAR SCRIPT ]</button>
+      </div>
+      <pre id="snippetCode">&lt;script&gt;
+  async function validarControlador() {
+    try {
+      const resposta = await fetch("https://controlador-six.vercel.app/validar");
+      const dados = await resposta.json();
+
+      if (dados.visible?.visible === false) {
+        window.location.href = "/notfound404";
+      }
+    } catch (erro) {
+      console.error("Erro ao validar controlador:", erro);
+    }
+  }
+
+  validarControlador();
+&lt;/script&gt;</pre>
+    </div>
 
     <div class="console-hint">> Verifique o F12 (Console) para logs em tempo real</div>
   </div>
 
   <script>
+    const API_URL = "https://controlador-six.vercel.app";
     let isSiteActive = false;
 
-    // Atualiza a interface visual com base no booleano recebido
+    // Atualiza a interface visual
     function atualizarInterfaceVisual(ativo) {
       isSiteActive = ativo;
       const badge = document.getElementById('statusBadge');
@@ -226,46 +295,46 @@
       }
 
       const timestamp = new Date().toLocaleTimeString('pt-BR');
-      console.log(`[${timestamp}] Painel atualizado:`, {
+      console.log(`[${timestamp}] Painel sincronizado:`, {
         ativo: isSiteActive,
         status: isSiteActive ? "ATIVO" : "INATIVO"
       });
     }
 
-    // Faz GET em /validar para buscar o estado atual do banco
+    // Consulta GET em /validar
     async function buscarStatusServidor() {
       try {
-        console.log("Buscando estado em /validar...");
-        const res = await fetch("/validar");
+        console.log(`Consultando ${API_URL}/validar...`);
+        const res = await fetch(`${API_URL}/validar`);
         
-        if (!res.ok) throw new Error("Erro na resposta do servidor");
+        if (!res.ok) throw new Error("Falha ao comunicar com o controlador");
 
         const data = await res.json();
-        // Exemplo esperado: {"visible":{"_id":"...","visible":false}}
         
         if (data && data.visible && typeof data.visible.visible === 'boolean') {
-          const estadoServidor = data.visible.visible;
-          atualizarInterfaceVisual(estadoServidor);
+          atualizarInterfaceVisual(data.visible.visible);
         } else {
-          console.warn("Formato de resposta inesperado:", data);
+          console.warn("Resposta em formato inesperado:", data);
         }
       } catch (error) {
-        console.log("Modo standalone/simulado: Não foi possível conectar a /validar. Mantendo estado local.");
+        console.error("Erro na comunicação com a API:", error);
       }
     }
 
-    // Ação ao clicar no botão de alternar
+    // Ação ao clicar no botão de alternar estado
     async function toggleStatus() {
       const novoEstado = !isSiteActive;
       
-      // Atualiza visualmente e envia para o backend
+      // Atualiza a UI imediatamente para resposta rápida
       atualizarInterfaceVisual(novoEstado);
+
+      // Envia alteração para o controlador
       await enviarAlteracao({ ativo: novoEstado });
     }
 
     async function enviarAlteracao(dados) {
       try {
-        const res = await fetch("/", {
+        const res = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(dados)
@@ -274,14 +343,27 @@
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("application/json")) {
           const data = await res.json();
-          console.log("Confirmação do servidor:", data);
+          console.log("Servidor confirmou alteração:", data);
         }
       } catch (error) {
-        console.log("Aviso: Requisição POST enviada (modo frontend isolado).");
+        console.error("Erro ao enviar estado para a API:", error);
       }
     }
 
-    // Ao carregar a página, busca o estado real no servidor
+    // Função para copiar o código snippet
+    function copiarCodigo() {
+      const codeText = document.getElementById('snippetCode').innerText;
+      navigator.clipboard.writeText(codeText).then(() => {
+        const btn = document.querySelector('.btn-copy');
+        const textOriginal = btn.textContent;
+        btn.textContent = '[ COPIADO! ]';
+        setTimeout(() => {
+          btn.textContent = textOriginal;
+        }, 2000);
+      });
+    }
+
+    // Inicialização do painel
     window.onload = function() {
       buscarStatusServidor();
     };
