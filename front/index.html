@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SITE CONTROL - Status Switch</title>
+  <style>
+    :root {
+      --bg-color: #050505;
+      --card-bg: #0c0c0c;
+      --border-color: #1f2937;
+      --active-color: #00FF41;
+      --active-glow: rgba(0, 255, 65, 0.2);
+      --inactive-color: #FF3030;
+      --inactive-glow: rgba(255, 48, 48, 0.2);
+      --font-mono: 'JetBrains Mono', 'Courier New', Courier, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: #e5e7eb;
+      font-family: var(--font-mono);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* Scanline effect */
+    body::before {
+      content: " ";
+      position: fixed;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+      background-size: 100% 4px;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .container {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 28px;
+      width: 100%;
+      max-width: 450px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header {
+      font-size: 0.8rem;
+      color: #6b7280;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      border-bottom: 1px dashed var(--border-color);
+      padding-bottom: 10px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      border-radius: 4px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      letter-spacing: 1.5px;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+
+    /* Estado Ativo */
+    .status-badge.active {
+      color: var(--active-color);
+      border: 1px solid var(--active-color);
+      background-color: rgba(0, 255, 65, 0.05);
+      box-shadow: 0 0 15px var(--active-glow);
+    }
+
+    /* Estado Inativo */
+    .status-badge.inactive {
+      color: var(--inactive-color);
+      border: 1px solid var(--inactive-color);
+      background-color: rgba(255, 48, 48, 0.05);
+      box-shadow: 0 0 15px var(--inactive-glow);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .active .dot {
+      background-color: var(--active-color);
+      box-shadow: 0 0 8px var(--active-color);
+    }
+
+    .inactive .dot {
+      background-color: var(--inactive-color);
+      box-shadow: 0 0 8px var(--inactive-color);
+    }
+
+    .btn-control {
+      width: 100%;
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+      cursor: pointer;
+      background: transparent;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    /* Estilo do botão quando o site está ATIVO (ação será DESATIVAR) */
+    .btn-control.active-state {
+      border: 1px solid var(--inactive-color);
+      color: var(--inactive-color);
+    }
+
+    .btn-control.active-state:hover {
+      background-color: var(--inactive-color);
+      color: #000;
+      box-shadow: 0 0 15px var(--inactive-glow);
+    }
+
+    /* Estilo do botão quando o site está INATIVO (ação será ATIVAR) */
+    .btn-control.inactive-state {
+      border: 1px solid var(--active-color);
+      color: var(--active-color);
+    }
+
+    .btn-control.inactive-state:hover {
+      background-color: var(--active-color);
+      color: #000;
+      box-shadow: 0 0 15px var(--active-glow);
+    }
+
+    .btn-sync {
+      width: 100%;
+      padding: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: #9ca3af;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+    }
+
+    .btn-sync:hover {
+      border-color: #6b7280;
+      color: #fff;
+    }
+
+    .console-hint {
+      margin-top: 15px;
+      font-size: 0.75rem;
+      color: #4b5563;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">[ SYS_CONTROL // INFRASTRUCTURE ]</div>
+
+    <!-- Indicador visual de estado -->
+    <div id="statusBadge" class="status-badge inactive">
+      <span class="dot"></span>
+      <span id="statusText">CARREGANDO...</span>
+    </div>
+
+    <!-- Botão de Alternância -->
+    <button id="toggleBtn" class="btn-control inactive-state" onclick="toggleStatus()">
+      [ CARREGANDO... ]
+    </button>
+
+    <!-- Botão para sincronizar com /validar -->
+    <button class="btn-sync" onclick="buscarStatusServidor()">[ SINCRONIZAR ESTADO ]</button>
+
+    <div class="console-hint">> Verifique o F12 (Console) para logs em tempo real</div>
+  </div>
+
+  <script>
+    let isSiteActive = false;
+
+    // Atualiza a interface visual com base no booleano recebido
+    function atualizarInterfaceVisual(ativo) {
+      isSiteActive = ativo;
+      const badge = document.getElementById('statusBadge');
+      const statusText = document.getElementById('statusText');
+      const btn = document.getElementById('toggleBtn');
+
+      if (isSiteActive) {
+        badge.className = 'status-badge active';
+        statusText.textContent = 'ATIVO';
+
+        btn.className = 'btn-control active-state';
+        btn.textContent = '[ DESATIVAR SITE ]';
+      } else {
+        badge.className = 'status-badge inactive';
+        statusText.textContent = 'INATIVO';
+
+        btn.className = 'btn-control inactive-state';
+        btn.textContent = '[ ATIVAR SITE ]';
+      }
+
+      const timestamp = new Date().toLocaleTimeString('pt-BR');
+      console.log(`[${timestamp}] Painel atualizado:`, {
+        ativo: isSiteActive,
+        status: isSiteActive ? "ATIVO" : "INATIVO"
+      });
+    }
+
+    // Faz GET em /validar para buscar o estado atual do banco
+    async function buscarStatusServidor() {
+      try {
+        console.log("Buscando estado em /validar...");
+        const res = await fetch("/validar");
+        
+        if (!res.ok) throw new Error("Erro na resposta do servidor");
+
+        const data = await res.json();
+        // Exemplo esperado: {"visible":{"_id":"...","visible":false}}
+        
+        if (data && data.visible && typeof data.visible.visible === 'boolean') {
+          const estadoServidor = data.visible.visible;
+          atualizarInterfaceVisual(estadoServidor);
+        } else {
+          console.warn("Formato de resposta inesperado:", data);
+        }
+      } catch (error) {
+        console.log("Modo standalone/simulado: Não foi possível conectar a /validar. Mantendo estado local.");
+      }
+    }
+
+    // Ação ao clicar no botão de alternar
+    async function toggleStatus() {
+      const novoEstado = !isSiteActive;
+      
+      // Atualiza visualmente e envia para o backend
+      atualizarInterfaceVisual(novoEstado);
+      await enviarAlteracao({ ativo: novoEstado });
+    }
+
+    async function enviarAlteracao(dados) {
+      try {
+        const res = await fetch("/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dados)
+        });
+
+        const contentType = res.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const data = await res.json();
+          console.log("Confirmação do servidor:", data);
+        }
+      } catch (error) {
+        console.log("Aviso: Requisição POST enviada (modo frontend isolado).");
+      }
+    }
+
+    // Ao carregar a página, busca o estado real no servidor
+    window.onload = function() {
+      buscarStatusServidor();
+    };
+  </script>
+
+</body>
+</html>
